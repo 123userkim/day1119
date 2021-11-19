@@ -1,0 +1,609 @@
+		create table salesperson(
+			name varchar2(20) primary key,
+			age number,
+			salary number
+		);
+		
+		create table customer(
+			name varchar2(20) primary key,
+			city varchar2(20),
+			industrytype varchar2(20)
+		);
+		
+		create table orders(
+			no number,
+			custname varchar2(20) references customer(name),
+			salesperson varchar2(20) references salesperson(name),
+			amout number, 
+			primary key(custname, salesperson)
+		);
+		
+		insert into salesperson values('김수연',26,500);
+		insert into salesperson values('임하연',37,500);
+		insert into salesperson values('유하림',40,600);
+		insert into salesperson values('이건우',50,700);
+		insert into salesperson values('박지예',27,500);
+		
+		insert into salesperson values('이재명',50,400);
+		
+		insert into  customer values('최현호','서울','공무원');
+		insert into customer  values('김지현','서울','IT');
+		insert into customer  values('윤서우','서울','IT');
+		insert into  customer values('정자영','서울','교사');
+		insert into customer values('윤태인','인천','서비스업');
+		insert into customer values('김시아','인천','서비스업');
+		insert into customer values('박성미','대전','건설');
+		insert into customer values('노유나','광주','건설');
+		insert into customer values('임상진','대전','교사');
+
+		insert into customer values('안철수','서울','기업인');
+		insert into customer values('윤석열','서울','정치인');
+		 
+
+** 시퀀스
+컬럼의 종류가 숫자인 경우,
+알아서 자동으로 1부터 1씩 증가하는 값으로 순번을 매기는 경우
+
+** 시퀀스 만드는 법
+create sequence 시퀀스이름;
+
+** 시퀀스 사용하는 방법
+insert into 테이블이름 values(시퀀스이름.nextval,...)
+
+	create sequence seq_orders;
+	
+	insert into orders values(seq_orders.nextval,'최현호','김수연',1);
+	insert into orders values(seq_orders.nextval,'김지현','김수연',1);
+	insert into orders values(seq_orders.nextval, '윤서우', '김수연', 1 );
+	insert into orders values(seq_orders.nextval,'윤서우','임하연',1);
+	insert into orders values(seq_orders.nextval,'윤태인','임하연',1);
+	insert into orders values(seq_orders.nextval,'김시아','유하림',1);
+	insert into orders values(seq_orders.nextval,'노유나','이건우',1);
+	insert into orders values(seq_orders.nextval,'박성미','박지예',1);
+	insert into orders values(seq_orders.nextval,'임상진','박지예',1);
+	
+	insert into orders values(seq_orders.nextval,'최현호','박지예',1);
+	insert into orders values(seq_orders.nextval,'최현호','이건우',1);
+	insert into orders values(seq_orders.nextval,'김시아','박지예',1);
+		
+
+**시퀀스를 이용하여 만약 sql명령어 자체에 결함이 있어 실패했을 경우
+시퀀스를 이용한 순번은 이미 발행이 되었기 때문에 순서대로 되지 않을 수 있음
+
+꼭 순서대로 해야한다면 max 함수 사용하기
+max(컬럼)+1을 사용함
+
+=> 시퀀스는 겹치지 않도록 번호를 매기는 용도일 뿐
+
+	2)모든 판매원의 이름과 급여를 출력 단, 중복행을 제거
+	select name, salary
+	from salesperson;
+
+	3)나이가 30세 미만인 판매원의 이름 출력
+	select name
+	from salesperson
+	where age<30;	
+	
+	4)'주'로 끝나는 도시에 사는 고객이름
+	select name
+	from customer
+	where city like '%주';
+	
+	5)주문을 한 고객의 수를 출력하기
+	select count(distinct custname)from orders;
+	
+	6)판매원 각각에 대해 주문의 수를 계산하시오
+	select salesperson,count(*) from orders
+	group by salesperson;	
+	
+	SALESPERSO   COUNT(*)
+	---------- ----------
+	박지예              4
+	유하림              1
+	김수연              2
+	이건우              2
+	임하연              2
+	
+	6-1)각 판매원별로 총  주문 수량을 나타내라
+	select salesperson,sum(amout) from orders
+	group by salesperson;
+	
+	7)서울에 거주하는 고객으로부터 주문을 받은 판매원의 이름과 나이를 출력하기
+	<서브쿼리 이용>
+	
+	-서울에 사는 사람
+	select name 
+	from customer
+	where city ='서울';
+	
+	NAME
+	----------
+	윤서우
+	정자영
+	최현호
+	안철수				=>A
+	
+	-위의 사람에게 판매한 판매원의 이름 출력
+	select distinct salesperson
+	from orders
+	where custname in (select name 
+						from customer
+						where city ='서울');		=>B			
+						
+	SALESPERSO
+	----------
+	임하연
+	김수연
+	박지예
+	이건우
+	
+	-이름이 B에 해당하는 판매원의 이름과 나이를 출력하기
+	select name, age
+	from salesperson
+	where name in(select distinct salesperson
+	from orders
+	where custname in (select name 
+						from customer
+						where city ='서울'));
+						
+	NAME        AGE
+	---------- ----
+	김수연       26
+	임하연       37
+	이건우       50
+	박지예       27
+	
+	<join이용하기>
+	select distinct s.name, age
+	from salesperson s, orders o, customer c
+	where s.name = o.salesperson and
+	c.name = o.custname and
+	city = '서울';
+	
+	9)두 번 이상 주문을 받은 판매원의 이름 출력
+	-판매원이름 별로 주문건수를 넣기
+	select salesperson, count(salesperson)
+	from orders
+	group by salesperson;
+	
+	SALESPERSO COUNT(SALESPERSON)
+	---------- ------------------
+	박지예                      4
+	유하림                      1
+	김수연                      3
+	이건우                      2
+	임하연                      2
+	
+	select salesperson, count(salesperson)
+	from orders
+	group by salesperson
+	having count(salesperson)>=2;
+	
+	SALESPERSO COUNT(SALESPERSON)
+	---------- ------------------
+	박지예                      4
+	김수연                      3
+	이건우                      2
+	임하연                      2
+	
+	10)판매원 '박지예'의 급여를 600만원으로 수정하기
+	update salesperson set salary = 600 where name ='박지예';
+	
+**데이터베이스 명령의 종류
+1)DCL: 데이터 제어어
+권한 부여, 권한 제어 -> grant, revoke
+
+2)DDL: 데이터 정의어
+테이블(뷰, 인덱스)을 생성하거나, 삭제하거나, 수정하거나
+create, drop, alter
+
+3)DML : 데이터 조작어
+자료를 추가, 검색, 수정, 삭제
+insert, select, update, delete
+---------------------------------------------------------------------------------------------
+
+**서브쿼리 : sql명령어 안에 포함되는 또다른 sql을 말함
+->select, from, where에 올 수가 있음
+
+**다중행연산자 : 서브쿼리가 where절에 사용이 될 때에 서브쿼리의 건수가 여러 건일 때에, 사용하는 연산자
+-> 종류는 in, not in,any, all, exists 등이 있음
+
+	1)대한민국에 거주하는 고객에게 판매한 도서의 총 판매액을 출력
+	
+	-대한민국에 거주하는 고객의 번호를 출력하기
+	select custid from customer where address like '대한민국%'; =>A
+	
+	-주문테이블로 고객번호가 A에 해당하는 판매액의 총액
+	select sum(saleprice) from orders
+	where custid = (select custid from customer where address like '대한민국%');
+		=>
+	2행에 오류:
+	ORA-01427: 단일 행 하위 질의에 2개 이상의 행이 리턴되었습니다.
+		=>다중행 연산자인 in 연산자를 사용하기
+	select sum(saleprice) from orders
+	where custid in(select custid from customer where address like '대한민국%');
+	
+	2)3번 고객이 주문한 도서의 최고 금액보다 더 비싼 도서를 구입한 주문의 주문번호와 금액을 출력하기
+	
+	-3번 고객이 주문한 주문금액을 출력
+	select saleprice from orders where custid =3;
+	
+	SALEPRICE
+	---------
+	    6,000
+	   12,000
+	   13,000
+	   10,000
+	   10,000
+	   10,000
+	   10,000
+	   20,000
+	   20,000			=>A
+	   
+	   -주문테이블로부터 주문 가격이 A보다 큰 주문의 주문번호, 주문금액을 출력
+	   select orderid, saleprice from
+	   orders where saleprice in (select saleprice from orders where custid =3); 
+		=> 서브쿼리가 여러 건이기에 비교연산자를 사용이 불가능 함
+		=> 다중행 연산자인 any some all과 같이 사용해야 함
+	   
+	   select orderid, saleprice from
+	   orders where saleprice >all(select saleprice from orders where custid =3); 
+	   
+	   select orderid, saleprice from
+	   orders where saleprice >(select max(saleprice) from orders where custid =3);
+	   =>
+	   >all은 max함수를 사용하여 단일행 연산자로 변환이 가능함	   
+	   
+	    select orderid, saleprice from
+	   orders where saleprice >any(select saleprice from orders where custid =3);
+	   ->어떤 거 하나보다도 큰  : any
+	   
+	   select orderid, saleprice from
+	   orders where saleprice >some(select saleprice from orders where custid =3);
+	   ->어떤 거 하나보다도 큰  : some
+	   -> >some(any)는 min함수를 사용하여 단일행으로 변환이 가능함	   
+	     
+	   select orderid, saleprice from
+	   orders where saleprice > (select min(saleprice) from orders where custid =3);
+	   
+	   1)모든 출판사의 출판사별 평균 판매가격의 최대값보다 비싼 도서의 정보 출력
+	   <max>
+	   select max(avg(price)) from book group by publisher;
+	   select * from book where price > (select max(avg(price)) from book group by publisher);
+	   
+	   <다중행>
+	   select avg(price) from book group by publisher;
+	   select * from book where price > all (select avg(price) from book group by publisher);
+	   
+**다중행 연산자 
+in, not in, any(some), all에 대해서 설명하기
+
+in, not in , any(some),all 모두
+서브쿼리의 건수가 여러 개일 때 사용하며, 
+	in은 =을 대신하여 사용이 가능
+	not in 은 != 대신
+	any(some),all은 
+	>,<,>=,<=연산자와 함께 사용이 가능함
+	
+	any(some),all은 min, max 함수를 대신하여 사용이 가능함/ max,min을 쓰면 단일 연산자가 됨
+
+**exists, not exists 연산자
+	다중행 연산자 종류 중의 하나이며, 서브쿼리의 건수가 존재하는지, 존재하지 않는지의 여부를 판별하는 연산자임
+-exists는 서브쿼리가 반환하는 조건에 맞는 메인쿼리를 실행하고
+-not exists 서브쿼리의 조건에 만족하지 않는 메인쿼리를 실행함
+
+-exists, not exists 다중행 연산자를 사용할 때엔 서브쿼리에 반드시 상관서브쿼리여야 함
+
+		1) 대한민국에 거주하는 고객에게 판매한 도서의 총판매액을 출력
+		<join>
+		select sum(saleprice)
+		from customer c, orders o
+		where c.custid  = o.custid and
+		address like '대한민국%';
+		
+		<서브쿼리 -in>
+		select sum(saleprice)
+		from orders
+		where custid in(select custid from customer where address like '대한민국%');
+		
+		<exists>
+		select sum(saleprice)
+		from orders o
+		where exists ( select custid from customer c where address like '대한민국%' and o.custid=c.custid);
+		
+**view : 실제로는 존재하지 않는 논리적인 가상의 테이블을 말함
+-자주 사용하는 복잡한 조건식을 갖는 select문이 있다면 그것을 조회하는 sql명령어를 view로 만들어 놓으면 사용이 용이함
+-보안유지상 특정 테이블의 컬럼을 제한하여 접근할 수 있도록할 때에도 뷰를 사용함
+
+-view 생성하는 방법
+create view 뷰이름 
+as select문
+
+		1)오늘 날짜의 출판사별 총판매수량, 총판매금액을 출력하기
+		select publisher, count(publisher)cnt, nvl(sum(saleprice),0)sum
+		from book b, orders o
+		where b.bookid = o.bookid(+) and
+		to_char(orderdate,'yyyy/mm/dd')= to_char(sysdate,'yyyy/mm/dd')
+		group by publisher;
+		====>A
+		
+		select distinct publisher,0 cnt from book;
+		====>B
+		
+		A의 cnt+ B의 cnt를 더하기
+		
+		PUBLISHER              CNT
+		--------------- ----------
+		굿스포츠                 0
+		나무수                   0
+		대한미디어                0
+		이상미디어                0
+		삼성당                   0
+		Pearson                0
+		쌍용미디어                0	
+	
+		select B.publisher, nvl(A.cnt,0) cnt, nvl(A.sum,0) sum
+		from (select publisher, count(publisher)cnt, nvl(sum(saleprice),0)sum
+		from book b, orders o
+		where b.bookid = o.bookid(+) and
+		to_char(orderdate,'yyyy/mm/dd')= to_char(sysdate,'yyyy/mm/dd')
+		group by publisher) A, (select distinct publisher,0 cnt from book) B
+		where A.publisher(+) = B.publisher
+		order by nvl(A.cnt,0) desc;
+		=>위와 같이 조회할 일이 많을 때, 매번 sql을 작성하는 것은 번거로움
+		=>view를 만들어두면, 조회가 쉬움
+		
+		create view today_sale
+		as 
+		select B.publisher, nvl(A.cnt,0) cnt, nvl(A.sum,0) sum
+		from (select publisher, count(publisher)cnt, nvl(sum(saleprice),0)sum
+		from book b, orders o
+		where b.bookid = o.bookid(+) and
+		to_char(orderdate,'yyyy/mm/dd')= to_char(sysdate,'yyyy/mm/dd')
+		group by publisher) A, (select distinct publisher,0 cnt from book) B
+		where A.publisher(+) = B.publisher
+		order by nvl(A.cnt,0) desc;
+		
+		=>위의 뷰를 부르는 방법
+		select * from today_sale;
+		
+		2)도서명에 축구를 포함하고 있는 도서의 정보를 조회하는 뷰를 생성하고, 뷰를 통해서 뷰를 생성
+		뷰이름 : vw_book
+				
+		create view vw_book
+		as
+		select bookname
+		from book
+		where bookname like '%축구%';
+		
+		3)대한민국에 거주하는 고객의 정보를 출력하는 뷰 생성, 
+		뷰이름:vw_customer
+		
+		create view vw_customer
+		as
+		select * from customer
+		where address like '대한민국%';
+		
+		4)주문번호,고객번호,고객이름,도서번호,도서명,판매가격, 주문일
+		뷰이름:vw_orders
+		create view vw_orders
+		as
+		select orderid, c.custid, name, b.bookid, bookname, saleprice, orderdate
+		from customer c, orders o, book b
+		where c.custid = o.custid and
+		o.bookid = b.bookid;
+		
+		5)vw_orders를 통해서 김연아 고객의 주문내역을 조회
+		select * from vw_orders where name ='김연아';
+		
+*보안유지상 조회할 수 있는 컬럼을 제한
+select * from c##madang.dept; => 내가 한 게 다보임
+
+실습을 위해서 사용자 계정을 생성
+create user c##hong identified by hong;
+=>conete, 리소스 권한을 만 줌
+grant connect, resource to c##hong;
+=>madang의 것을 못 봄
+
+=>홍에게 일부분만 주는 권한을 줌
+
+		1)c##madang 자신의 테이블인 emp중에서 사원번호, 사원명, 부서번호, 주소, 전화번호만 
+		조회할 수 있도록 뷰를 생성해서 홍에게 권한을 부여함
+		
+		1-뷰생성
+		create view vw_emp
+		as
+		select eno,ename, dno, addr, phone
+		from emp;
+		
+		2-뷰를 읽을 수 있는 권한을 부여함
+		grant select on c##madang.vw_emp to c##hong;
+		
+		3-권한을 제거하기
+		revoke select on c##madang.vw_emp from c##hong;
+		
+---------------------------------------------------------
+		1)20번 부서에 근무하는 직원들의 사원번호, 사원명, 주소, 전화번호,부서번호를 조회하는 view
+		뷰 이름 : vw_emp20
+		
+		create view vw_emp20
+		as
+		select eno,ename, addr, phone, dno
+		from emp
+		where dno =20;
+
+**view를 통해서 insert, update, delete를 실험하기
+<insert>
+		insert into vw_emp20 values(2000,'홍길동','서울','010-7777-7777',20);
+		=>view를 통해서 insert가능함
+		=>view에 포함되지 않은 컬럼들은 null
+		=>모테이블에 실제로 추가가 되기 때문에 emp에 다른 컬럼들은 default값이 있거나, null을 허용해야 함
+		
+<update>
+		update vw_emp set addr ='서울' where eno = 1010;
+		=>뷰를 통해서 update가 가능함
+		=>뷰 생성시에 사용한 모 테이블의 내용이 수정이 됨
+<delete>
+		delete vw_emp20 where eno = 1014;
+		=>뷰를 통해 delete가 가능함
+		=>실제 레코드가 있는 모테이블에서 삭제가 수행됨
+		
+		문제1)뷰의 생성시에 조건에 맞지 않는 레코드를 추가할 수 있는가>
+		
+		insert into vw_emp20 values(2001, '김시아','서울','010-9999-9999',30);
+		=>뷰를 생성시에 조건에 맞지 않는 레코드를 추가가능
+		 그러나 뷰에는 나타나지 않고, 모테이블에 추가가됨 
+		 
+		문제2) 뷰 생성시에 조건에 맞지 않는 값으로 레코드를 수정할 수 있는가?
+		update vw_emp20 set dno =30 where eno=2000; 
+		=>뷰를 생성시에 설정한 조건에 맞지 않는 값으로 뷰를 통해 업데이트가 가능함
+		모테이블의 내용이 변경되고, 뷰에는 조건이 맞지 않기 때문에 나타나지 않음
+		
+		
+**뷰를 생성시에 설정한 조건에 맞지 않는 레코드를 추가할 수 없도록 
+create view 뷰이름
+as select ~~
+with check option;
+
+**뷰를 삭제하는 명령
+drop view 뷰이름;
+
+		문제) 
+		create view vw_emp20
+		as
+		select eno,ename, addr, phone, dno
+		from emp
+		where dno =20
+		with check option;
+		
+		-> 조건에 맞는 거만 추가가 가능함
+		
+		insert into vw_emp20 values(4000,'유관순','서울','010-0000-0000',20);
+		  
+		update vw_emp20 set phone ='010-2222-2222' where eno = 4000;     
+		update vw_emp20 set phone ='010-2222-2222' where eno = 4000;     
+ 
+ **조회만 가능한 뷰를 생성하고 싶다면?
+ create view 뷰이름
+ as select ~~
+ with read only;
+
+		문제)vw_emp20을 삭제하고 읽기만 가능한 뷰로 만들기
+				create view vw_emp20
+					as
+					select eno,ename, addr, phone, dno
+					from emp
+					where dno =20
+				with read only;
+		
+		insert into vw_emp20 values(4020,'유관순','서울','010-0000-0000',20);		
+		1행에 오류:
+		ORA-42399: 읽기 전용 뷰에서는 DML 작업을 수행할 수 없습니다.
+		
+		delete vw_emp20 where eno =4000;		
+		1행에 오류:
+		ORA-42399: 읽기 전용 뷰에서는 DML 작업을 수행할 수 없습니다.		
+		
+		update vw_emp20 set phone ='010-2222-2222' where eno = 4000;  
+		1행에 오류:
+		ORA-42399: 읽기 전용 뷰에서는 DML 작업을 수행할 수 없습니다. 
+		
+		select * from vw_emp20;
+		 ENO ENAME           ADDR       PHONE             DNO
+		----- --------------- ---------- --------------- -----
+		 1002 최현호          인천       010-000-3333       20
+		 1005 김지현          서울       010-3333-2222      20
+		 1009 윤서우          서울       010-0000-2225      20
+		 1010 정자영          서울       010-0000-2226      20
+		 4000 유관순          서울       010-2222-2222      20
+		
+*view란 실제로는 존재하지 않는 가상의 논리적인 테이블을 말하며,
+복잡한 sql을 대신하거나, 사용자별 접근권한을 설정하는 용도로 사용함
+뷰를 통해서 추가,수정,삭제가 가능하며
+조건에 맞게 수정하거나 추가하려면=> with check option
+읽기만 가능한 뷰를 만들기	   => withi read only
+
+**system view(테이터사전)
+오라클이 제공하는 데이터사전을 말함
+user_objects		사용자의 모든 객체의 정보
+user_tables			사용자의 모든 테이블의 정보
+user_constraints	사용자가 만든 모든 제약에 관한 정보
+
+	
+==>제약의 비활성화
+alter table 테이블이름 disable constraint 제약명;
+==>제약의 활성화
+alter table 테이블이름 enable constraint 제약명;
+		
+		select constraint_name, constraint_type, table_name, status from user_constraints;
+		
+		SYS_C008322     P          BOOK       ENABLED
+		SYS_C008335     R          ORDERS     ENABLED
+		SYS_C008334     R          ORDERS     ENABLED
+		
+		insert into book values(14,'즐거운 오라클','쌍용미디어',30000);
+		1행에 오류:
+		ORA-00001: 무결성 제약 조건(C##MADANG.SYS_C008322)에 위배됩니다
+
+------->제약을 비활성화
+		alter table book disable constraint SYS_C008322;
+
+		1행에 오류:
+		ORA-02297: 제약 조건(C##MADANG.SYS_C008322)을 사용 안함으로 설정 불가 -
+		종속성이 존재합니다.
+		=>참조키가 있어서 그럼(orders)
+		
+		alter table orders disable constraint SYS_C008335;
+		alter table orders disable constraint SYS_C008334;
+		alter table book disable constraint SYS_C008322;
+		
+------->제약의 활성화		
+		primary key 재설정을 위해서는 활성화하려는 제약에 대해 만족하는 상태를 만들어야 함
+		
+		alter table book enable constraint SYS_C008322;
+		alter table orders enable constraint SYS_C008335;
+		alter table orders enable constraint SYS_C008334;
+		*
+		1행에 오류:
+		ORA-02437: (C##MADANG.SYS_C008322)을 검증할 수 없습니다 - 잘못된 기본 키입니다
+		=>활성화하려는 제약에 대한 만족하지 않는 데이터가 있어서 오류가 발생
+		
+		insert into book values(14,'즐거운 오라클','쌍용미디어',30000);
+		->제약이 활성화 됨 
+		
+**index
+-조건식에 자주 사용되는 컬럼에 대하여 미리 색인표를 만들어두는 것
+-인덱스를 만들어두면 검색시에 빠른 성능을 기대할 수 있음
+-어떤 책이 한 권 있다고 가정할 때 :  책이 10페이지라면 색인표 필요 x
+							책이 600페이지~1000페이지가 넘어간다면 색인표 필요 o 
+		->책의 내용을 빨리 찾도록 색인표를 만들어두면 원하는 내용을 빨리 찾을 수 있음
+		->데이터도 마찬가지, 데이터의 양이 많을 때 검색(조건식)에 빈번히 사용하는 컬럼에 대해
+		"인덱스"를 만들어두면 검색시에 성능효과를 기대할 수 있음
+		->데이터의 양이 적으면 딱히 인덱스의 성능 기대 ㄴ
+		=>만약 책/색인표 완성 , but 책의 내용이 자꾸 바뀐다면 색인표의 의미x , 오히려 방해
+			데이터의 수정삭제가 빈번한 컬럼에 인덱스를 만들어둔다면 노쓸모, 성능저하의 요인
+			
+**인덱스를 만드는 방법
+create index 인덱스이름 on 테이블이름(컬럼이름,[컬럼이름])
+
+		문제1)bookname을 대상으로 인덱스를 만들기	(idex_book)	
+		
+		-인덱스를 만들지 않고 책이름으로 검색하기
+		select * from book
+		where bookname ='즐거운 오라클';
+		
+		-인덱스를 만들고 책이름으로 검색
+		create index idex_book 
+		on book(bookname);
+**인덱스 지우는 방법
+drop index 인덱스명;		
+ -----------------------------------------------
+ **인덱스가 있어서 검색속도의 차이를 보고 싶다면?
+ member에 dummy 데이터 500000명의 데이터를 insert하는 프로그램을 만들기
+			
+
+			create table memeber100(
+			id varchar2(50) primary key,
+			pwd varchar2(50),
+			name varchar2(50)
+			);
